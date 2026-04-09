@@ -67,7 +67,11 @@ class Qarsa:
 
         # - Map to Designed State and Reward
         state_next = self.map_to_designed_state(state_next_mat)
-        reward_next = self.map_to_designed_reward(reward_next_mat)
+        reward_next = self.map_to_designed_reward(
+            reward_next_mat,
+            current_state_mat=state_mat,
+            next_state_mat=state_next_mat,
+        )
 
         # - Select Next Action for SARSA Update
         if done is not True:
@@ -151,12 +155,20 @@ class Qarsa:
             qarsa._04_action_space_design.action_mask()
         return action_custom
 
-    def map_to_designed_reward(self, reward_mat):
+    def map_to_designed_reward(
+        self,
+        reward_mat,
+        current_state_mat=None,
+        next_state_mat=None,
+    ):
         """====================================================================================================
         ## Mapping from Environment Reward to Designed Reward
         ===================================================================================================="""
         reward_custom = qarsa._05_reward_design.calculate_reward(
-            reward_mat)
+            reward_mat,
+            current_state_mat=current_state_mat,
+            next_state_mat=next_state_mat,
+        )
         return reward_custom
 
     def save(self):

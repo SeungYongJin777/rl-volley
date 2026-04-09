@@ -75,7 +75,37 @@ def select_mat_for_reward(materials):
     return SELECTED_MATARIALS
 
 
-def calculate_reward(materials):
+def landing_distance_from_state(state_mat):
+    raw = state_mat["raw"]
+    self_x = int(raw["self"]["x"])
+    landing_x = int(raw["ball"]["expected_landing_x"])
+    return abs(self_x - landing_x)
+
+
+def calculate_landing_alignment_reward(
+    current_state_mat=None,
+    next_state_mat=None,
+    point_scored=0,
+    point_lost=0,
+):
+    if current_state_mat is None or next_state_mat is None:
+        return 0.0
+    if point_scored or point_lost:
+        return 0.0
+
+    current_distance = float(landing_distance_from_state(current_state_mat))
+    next_distance = float(landing_distance_from_state(next_state_mat))
+    normalized_delta = (current_distance - next_distance) / float(GROUND_HALF_WIDTH)
+
+    if normalized_delta > 1.0:
+        normalized_delta = 1.0
+    if normalized_delta < -1.0:
+        normalized_delta = -1.0
+
+    return normalized_delta
+
+
+def calculate_reward(materials, current_state_mat=None, next_state_mat=None):
     """====================================================================================================
     ## Load Materials For Reward Design
     ===================================================================================================="""
@@ -90,8 +120,8 @@ def calculate_reward(materials):
     SCALE_POINT_LOST_PENALTY = 35.0
 
     # Define Scale Factor for Self Bonus/Penalty
-    SCALE_SELF_SPIKE_BONUS = 0.5
-    SCALE_SELF_DIVE_BONUS = 0.2
+    SCALE_SELF_SPIKE_BONUS = 0.3
+    SCALE_SELF_DIVE_BONUS = -0.3
 
     # Define Scale Factor for Opponent Bonus/Penalty
     SCALE_OPPONENT_DIVE_BONUS = 0.0
@@ -103,6 +133,9 @@ def calculate_reward(materials):
 
     # Define Scale Factor for Match Win Bonus
     SCALE_MATCH_WIN_BONUS = 20.0
+
+    # Define Scale Factor for Moving Toward the Predicted Landing Point
+    SCALE_LANDING_ALIGNMENT = 8.0
 
     """====================================================================================================
     ## Calculating Reward by Accumulating Different Components
@@ -128,6 +161,14 @@ def calculate_reward(materials):
         rally_reward = min(mat["rally_total_frames_until_point"] * SCALE_RALLY_FRAME,
                            SCALE_RALLY_FRAME_MAX)
     reward += rally_reward
+
+    # Accumulate Positioning Reward
+    reward += SCALE_LANDING_ALIGNMENT * calculate_landing_alignment_reward(
+        current_state_mat=current_state_mat,
+        next_state_mat=next_state_mat,
+        point_scored=mat["point_scored"],
+        point_lost=mat["point_lost"],
+    )
 
     # Accumulate Match Win Reward
     reward += SCALE_MATCH_WIN_BONUS * mat["match_won"]

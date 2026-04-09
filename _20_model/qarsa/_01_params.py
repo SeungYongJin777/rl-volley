@@ -5,17 +5,17 @@ def get_train_params():
     # Define the training parameters
     TRAIN_PARAMS = {
         # Learning Rate
-        "alpha": 0.13,
+        "alpha": 0.12,
 
         # Discount Factor
         "gamma": 0.995,
 
         # Weighted Target Mixing between Q-Learning and SARSA
-        "lambda_blend": 0.4,
+        "lambda_blend": 0.30,
 
         # Epsilon-Greedy Exploration Parameters
-        "epsilon_start": 0.40,
-        "epsilon_end": 0.05,
+        "epsilon_start": 0.25,
+        "epsilon_end": 0.02,
         "epsilon_decay": 0.99998,
 
         # Maximum Steps per Episode
