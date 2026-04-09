@@ -14,9 +14,9 @@ def get_train_params():
         "lambda_blend": 0.30,
 
         # Epsilon-Greedy Exploration Parameters
-        "epsilon_start": 0.25,
-        "epsilon_end": 0.02,
-        "epsilon_decay": 0.99998,
+        "epsilon_start": 0.20,
+        "epsilon_end": 0.01,
+        "epsilon_decay": 0.99999,
 
         # Maximum Steps per Episode
         "max_steps_per_episode": 30*30,

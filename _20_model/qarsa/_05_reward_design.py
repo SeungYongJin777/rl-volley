@@ -82,6 +82,38 @@ def landing_distance_from_state(state_mat):
     return abs(self_x - landing_x)
 
 
+def ball_relative_height_from_state(state_mat):
+    raw = state_mat["raw"]
+    self_y = int(raw["self"]["y"])
+    ball_y = int(raw["ball"]["y"])
+    return self_y - ball_y
+
+
+def ball_vertical_velocity_from_state(state_mat):
+    raw = state_mat["raw"]
+    return float(raw["ball"]["y_velocity"])
+
+
+def drop_phase_from_state(state_mat, low_height_threshold=56):
+    ball_rel_y = ball_relative_height_from_state(state_mat)
+    ball_vy = ball_vertical_velocity_from_state(state_mat)
+
+    if ball_vy <= 0:
+        return 0
+    if ball_rel_y > low_height_threshold:
+        return 1
+    return 2
+
+
+def landing_alignment_urgency_scale(state_mat):
+    phase = drop_phase_from_state(state_mat)
+    if phase == 2:
+        return 2.5
+    if phase == 1:
+        return 1.4
+    return 0.8
+
+
 def calculate_landing_alignment_reward(
     current_state_mat=None,
     next_state_mat=None,
@@ -102,7 +134,30 @@ def calculate_landing_alignment_reward(
     if normalized_delta < -1.0:
         normalized_delta = -1.0
 
-    return normalized_delta
+    return normalized_delta * landing_alignment_urgency_scale(next_state_mat)
+
+
+def calculate_urgent_receive_penalty(
+    next_state_mat=None,
+    point_scored=0,
+    point_lost=0,
+    safe_distance=24.0,
+):
+    if next_state_mat is None:
+        return 0.0
+    if point_scored or point_lost:
+        return 0.0
+    if drop_phase_from_state(next_state_mat) != 2:
+        return 0.0
+
+    next_distance = float(landing_distance_from_state(next_state_mat))
+    if next_distance <= safe_distance:
+        return 0.0
+
+    normalized_gap = (next_distance - safe_distance) / float(GROUND_HALF_WIDTH)
+    if normalized_gap > 1.0:
+        normalized_gap = 1.0
+    return -normalized_gap
 
 
 def calculate_reward(materials, current_state_mat=None, next_state_mat=None):
@@ -135,7 +190,10 @@ def calculate_reward(materials, current_state_mat=None, next_state_mat=None):
     SCALE_MATCH_WIN_BONUS = 20.0
 
     # Define Scale Factor for Moving Toward the Predicted Landing Point
-    SCALE_LANDING_ALIGNMENT = 8.0
+    SCALE_LANDING_ALIGNMENT = 6.0
+
+    # Define Scale Factor for Being Too Far from a Low Descending Ball
+    SCALE_URGENT_RECEIVE_PENALTY = 2.5
 
     """====================================================================================================
     ## Calculating Reward by Accumulating Different Components
@@ -165,6 +223,11 @@ def calculate_reward(materials, current_state_mat=None, next_state_mat=None):
     # Accumulate Positioning Reward
     reward += SCALE_LANDING_ALIGNMENT * calculate_landing_alignment_reward(
         current_state_mat=current_state_mat,
+        next_state_mat=next_state_mat,
+        point_scored=mat["point_scored"],
+        point_lost=mat["point_lost"],
+    )
+    reward += SCALE_URGENT_RECEIVE_PENALTY * calculate_urgent_receive_penalty(
         next_state_mat=next_state_mat,
         point_scored=mat["point_scored"],
         point_lost=mat["point_lost"],

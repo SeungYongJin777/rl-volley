@@ -20,6 +20,13 @@ def clamp(value, minimum_value, maximum_value):
     return max(minimum_value, min(maximum_value, value))
 
 
+def bucket_from_boundaries(value, boundaries):
+    for bucket_index, boundary in enumerate(boundaries):
+        if value <= boundary:
+            return bucket_index
+    return len(boundaries)
+
+
 def self_air_state(state_name):
     state_name = str(state_name).strip().lower()
     if state_name == "dive":
@@ -29,12 +36,17 @@ def self_air_state(state_name):
     return 0
 
 
-def ball_approach_state(ball_rel_x, ball_vx, small_threshold=24):
-    if abs(ball_vx) <= 1 or abs(ball_rel_x) <= small_threshold:
+def relative_x_bucket(value):
+    boundaries = (-160, -96, -48, -16, 16, 48, 96, 160)
+    return bucket_from_boundaries(value, boundaries)
+
+
+def ball_drop_phase(ball_rel_y, ball_vy, low_height_threshold=56):
+    if ball_vy <= 0:
+        return 0
+    if ball_rel_y > low_height_threshold:
         return 1
-    if ball_rel_x * ball_vx < 0:
-        return 2
-    return 0
+    return 2
 
 
 def _extract_raw_values(materials):
@@ -61,16 +73,11 @@ def _extract_raw_values(materials):
 
 
 def _calculate_state_key_v1(values):
-    rel_x_min = -GROUND_HALF_WIDTH
-    rel_x_max = GROUND_HALF_WIDTH
     rel_y_min = -32
     rel_y_max = 256
 
-    ball_rel_x_bucket = bucket(
-        clamp(values["ball_rel_x"], rel_x_min, rel_x_max),
-        rel_x_min,
-        rel_x_max,
-        8,
+    ball_rel_x_bucket = relative_x_bucket(
+        clamp(values["ball_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)
     )
     ball_rel_y_bucket = bucket(
         clamp(values["ball_rel_y"], rel_y_min, rel_y_max),
@@ -80,11 +87,8 @@ def _calculate_state_key_v1(values):
     )
     ball_vx_bucket = bucket(clamp(values["ball_vx"], -20, 20), -20, 20, 6)
     ball_vy_bucket = bucket(clamp(values["ball_vy"], -20, 20), -20, 20, 6)
-    landing_rel_x_bucket = bucket(
-        clamp(values["landing_rel_x"], rel_x_min, rel_x_max),
-        rel_x_min,
-        rel_x_max,
-        8,
+    landing_rel_x_bucket = relative_x_bucket(
+        clamp(values["landing_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)
     )
 
     return [
@@ -94,41 +98,37 @@ def _calculate_state_key_v1(values):
         ball_vy_bucket,
         self_air_state(values["self_state"]),
         landing_rel_x_bucket,
-        ball_approach_state(values["ball_rel_x"], values["ball_vx"]),
+        ball_drop_phase(values["ball_rel_y"], values["ball_vy"]),
     ]
 
 
 def _calculate_state_key_v2(values):
-    rel_x_min = -GROUND_HALF_WIDTH
-    rel_x_max = GROUND_HALF_WIDTH
     rel_y_min = -32
     rel_y_max = 256
 
     return [
-        bucket(clamp(values["ball_rel_x"], rel_x_min, rel_x_max), rel_x_min, rel_x_max, 8),
+        relative_x_bucket(clamp(values["ball_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
         bucket(clamp(values["ball_rel_y"], rel_y_min, rel_y_max), rel_y_min, rel_y_max, 8),
         bucket(clamp(values["ball_vx"], -20, 20), -20, 20, 6),
         bucket(clamp(values["ball_vy"], -20, 20), -20, 20, 6),
         self_air_state(values["self_state"]),
-        bucket(clamp(values["landing_rel_x"], rel_x_min, rel_x_max), rel_x_min, rel_x_max, 8),
+        relative_x_bucket(clamp(values["landing_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
     ]
 
 
 def _calculate_state_key_v3(values):
-    rel_x_min = -GROUND_HALF_WIDTH
-    rel_x_max = GROUND_HALF_WIDTH
     rel_y_min = -32
     rel_y_max = 256
 
     return [
         bucket(values["self_x"], 0, GROUND_WIDTH - 1, 6),
         self_air_state(values["self_state"]),
-        bucket(clamp(values["ball_rel_x"], rel_x_min, rel_x_max), rel_x_min, rel_x_max, 8),
+        relative_x_bucket(clamp(values["ball_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
         bucket(clamp(values["ball_rel_y"], rel_y_min, rel_y_max), rel_y_min, rel_y_max, 8),
         bucket(clamp(values["ball_vx"], -20, 20), -20, 20, 6),
         bucket(clamp(values["ball_vy"], -20, 20), -20, 20, 6),
-        bucket(clamp(values["landing_rel_x"], rel_x_min, rel_x_max), rel_x_min, rel_x_max, 8),
-        ball_approach_state(values["ball_rel_x"], values["ball_vx"]),
+        relative_x_bucket(clamp(values["landing_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
+        ball_drop_phase(values["ball_rel_y"], values["ball_vy"]),
     ]
 
 
