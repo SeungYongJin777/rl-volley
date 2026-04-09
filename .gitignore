@@ -1,0 +1,16 @@
+.venv/
+_20_model/**/outputs/policy_trained/
+
+# 가상환경 (가장 중요)
+.rlvenv/
+
+venv/
+
+# 파이썬 캐시
+__pycache__/
+*.py[cod]
+
+# 윈도우 시스템 파일
+Thumbs.db
+Desktop.ini
+.DS_Store
