@@ -21,6 +21,7 @@ class Qarsa:
         # - Variables
         self.epsilon = self.train_conf["epsilon_start"]
         self.action_next_mat = None
+        self.last_action_idx = None
 
         # - Target Policy Name
         if policy_name_for_play is not None:
@@ -56,9 +57,12 @@ class Qarsa:
                 policy=self.policy,
                 state=state,
                 epsilon=self.epsilon,
+                state_mat=state_mat,
+                previous_action_idx=self.last_action_idx,
             )
         else:
             action_mat = self.action_next_mat
+        self.last_action_idx = int(np.argmax(np.asarray(action_mat, dtype=float)))
         action = self.map_to_designed_action(action_mat)
 
         # - Run Environment and Get Transition
@@ -79,18 +83,22 @@ class Qarsa:
                 policy=self.policy,
                 state=state_next,
                 epsilon=self.epsilon,
+                state_mat=state_next_mat,
+                previous_action_idx=self.last_action_idx,
             )
-            action_next = self.map_to_designed_action(action_next_mat)
         else:
             action_next_mat = None
-            action_next = None
                 
         # - Aggregate Transition
         transition = (state, action_mat, state_next,
-                      action_next, reward_next, done, score)
+                      action_next_mat, reward_next, done, score)
 
         # - Update Epsilon and Cache the Next Action
-        self.update_epsilon()
+        if done is True:
+            self.update_epsilon()
+            self.last_action_idx = None
+        elif action_next_mat is not None:
+            self.last_action_idx = int(np.argmax(np.asarray(action_next_mat, dtype=float)))
         self.action_next_mat = action_next_mat
 
         # - Return Transition
@@ -151,9 +159,25 @@ class Qarsa:
         """====================================================================================================
         ## Mapping from Policy Action to Designed Action
         ===================================================================================================="""
-        action_custom = action_mat *\
-            qarsa._04_action_space_design.action_mask()
+        action_custom = qarsa._04_action_space_design.policy_action_to_environment(
+            action_mat
+        )
         return action_custom
+
+    def select_action(self, state_mat, epsilon=0.0):
+        """====================================================================================================
+        ## Select Action for Play/Evaluation
+        ===================================================================================================="""
+        state = self.map_to_designed_state(state_mat)
+        action_mat = qarsa._06_algorithm.epsilon_greedy_action_selection(
+            policy=self.policy,
+            state=state,
+            epsilon=epsilon,
+            state_mat=state_mat,
+            previous_action_idx=self.last_action_idx,
+        )
+        self.last_action_idx = int(np.argmax(np.asarray(action_mat, dtype=float)))
+        return self.map_to_designed_action(action_mat)
 
     def map_to_designed_reward(
         self,

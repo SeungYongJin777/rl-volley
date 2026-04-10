@@ -1,19 +1,8 @@
 # Import require internal Packages
 from _00_environment.constants import GROUND_HALF_WIDTH
-from _00_environment.constants import GROUND_WIDTH
 
 
 STATE_DESIGN_VERSION = 1
-
-
-def bucket(value, minimum_value, maximum_value, bucket_count):
-    if value <= minimum_value:
-        return 0
-    if value >= maximum_value:
-        return bucket_count - 1
-    ratio = (value - minimum_value) / (maximum_value - minimum_value)
-    out = int(ratio * bucket_count)
-    return min(out, bucket_count - 1)
 
 
 def clamp(value, minimum_value, maximum_value):
@@ -41,10 +30,25 @@ def relative_x_bucket(value):
     return bucket_from_boundaries(value, boundaries)
 
 
-def ball_drop_phase(ball_rel_y, ball_vy, low_height_threshold=56):
-    if ball_vy <= 0:
+def relative_y_bucket(value):
+    boundaries = (-16, 12, 40, 88, 144)
+    return bucket_from_boundaries(value, boundaries)
+
+
+def velocity_x_bucket(value):
+    boundaries = (-12, -4, 4, 12)
+    return bucket_from_boundaries(value, boundaries)
+
+
+def velocity_y_bucket(value):
+    boundaries = (-12, -2, 2, 10)
+    return bucket_from_boundaries(value, boundaries)
+
+
+def self_zone_bucket(self_x):
+    if self_x < 72:
         return 0
-    if ball_rel_y > low_height_threshold:
+    if self_x < 144:
         return 1
     return 2
 
@@ -73,63 +77,27 @@ def _extract_raw_values(materials):
 
 
 def _calculate_state_key_v1(values):
-    rel_y_min = -32
-    rel_y_max = 256
-
-    ball_rel_x_bucket = relative_x_bucket(
-        clamp(values["ball_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)
-    )
-    ball_rel_y_bucket = bucket(
-        clamp(values["ball_rel_y"], rel_y_min, rel_y_max),
-        rel_y_min,
-        rel_y_max,
-        8,
-    )
-    ball_vx_bucket = bucket(clamp(values["ball_vx"], -20, 20), -20, 20, 6)
-    ball_vy_bucket = bucket(clamp(values["ball_vy"], -20, 20), -20, 20, 6)
-    landing_rel_x_bucket = relative_x_bucket(
-        clamp(values["landing_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)
-    )
-
     return [
-        ball_rel_x_bucket, 
-        ball_rel_y_bucket,
-        ball_vx_bucket,
-        ball_vy_bucket,
+        self_zone_bucket(values["self_x"]),
         self_air_state(values["self_state"]),
-        landing_rel_x_bucket,
-        ball_drop_phase(values["ball_rel_y"], values["ball_vy"]),
+        relative_x_bucket(
+            clamp(values["ball_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)
+        ),
+        relative_y_bucket(clamp(values["ball_rel_y"], -32, 256)),
+        velocity_x_bucket(clamp(values["ball_vx"], -20, 20)),
+        velocity_y_bucket(clamp(values["ball_vy"], -20, 20)),
+        relative_x_bucket(
+            clamp(values["landing_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)
+        ),
     ]
 
 
 def _calculate_state_key_v2(values):
-    rel_y_min = -32
-    rel_y_max = 256
-
-    return [
-        relative_x_bucket(clamp(values["ball_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
-        bucket(clamp(values["ball_rel_y"], rel_y_min, rel_y_max), rel_y_min, rel_y_max, 8),
-        bucket(clamp(values["ball_vx"], -20, 20), -20, 20, 6),
-        bucket(clamp(values["ball_vy"], -20, 20), -20, 20, 6),
-        self_air_state(values["self_state"]),
-        relative_x_bucket(clamp(values["landing_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
-    ]
+    return _calculate_state_key_v1(values)
 
 
 def _calculate_state_key_v3(values):
-    rel_y_min = -32
-    rel_y_max = 256
-
-    return [
-        bucket(values["self_x"], 0, GROUND_WIDTH - 1, 6),
-        self_air_state(values["self_state"]),
-        relative_x_bucket(clamp(values["ball_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
-        bucket(clamp(values["ball_rel_y"], rel_y_min, rel_y_max), rel_y_min, rel_y_max, 8),
-        bucket(clamp(values["ball_vx"], -20, 20), -20, 20, 6),
-        bucket(clamp(values["ball_vy"], -20, 20), -20, 20, 6),
-        relative_x_bucket(clamp(values["landing_rel_x"], -GROUND_HALF_WIDTH, GROUND_HALF_WIDTH)),
-        ball_drop_phase(values["ball_rel_y"], values["ball_vy"]),
-    ]
+    return _calculate_state_key_v1(values)
 
 
 def calculate_state_key(materials):

@@ -108,10 +108,10 @@ def drop_phase_from_state(state_mat, low_height_threshold=56):
 def landing_alignment_urgency_scale(state_mat):
     phase = drop_phase_from_state(state_mat)
     if phase == 2:
-        return 2.5
+        return 1.8
     if phase == 1:
-        return 1.4
-    return 0.8
+        return 0.8
+    return 0.0
 
 
 def calculate_landing_alignment_reward(
@@ -119,14 +119,21 @@ def calculate_landing_alignment_reward(
     next_state_mat=None,
     point_scored=0,
     point_lost=0,
+    alignment_deadband=12.0,
 ):
     if current_state_mat is None or next_state_mat is None:
         return 0.0
     if point_scored or point_lost:
         return 0.0
+    if ball_vertical_velocity_from_state(next_state_mat) <= 0.0:
+        return 0.0
 
     current_distance = float(landing_distance_from_state(current_state_mat))
     next_distance = float(landing_distance_from_state(next_state_mat))
+
+    if current_distance <= alignment_deadband and next_distance <= alignment_deadband:
+        return 0.0
+
     normalized_delta = (current_distance - next_distance) / float(GROUND_HALF_WIDTH)
 
     if normalized_delta > 1.0:
@@ -141,7 +148,7 @@ def calculate_urgent_receive_penalty(
     next_state_mat=None,
     point_scored=0,
     point_lost=0,
-    safe_distance=24.0,
+    safe_distance=18.0,
 ):
     if next_state_mat is None:
         return 0.0
@@ -175,8 +182,8 @@ def calculate_reward(materials, current_state_mat=None, next_state_mat=None):
     SCALE_POINT_LOST_PENALTY = 35.0
 
     # Define Scale Factor for Self Bonus/Penalty
-    SCALE_SELF_SPIKE_BONUS = 0.3
-    SCALE_SELF_DIVE_BONUS = -0.3
+    SCALE_SELF_SPIKE_BONUS = 0.0
+    SCALE_SELF_DIVE_BONUS = -0.5
 
     # Define Scale Factor for Opponent Bonus/Penalty
     SCALE_OPPONENT_DIVE_BONUS = 0.0
@@ -190,10 +197,10 @@ def calculate_reward(materials, current_state_mat=None, next_state_mat=None):
     SCALE_MATCH_WIN_BONUS = 20.0
 
     # Define Scale Factor for Moving Toward the Predicted Landing Point
-    SCALE_LANDING_ALIGNMENT = 3.5
+    SCALE_LANDING_ALIGNMENT = 1.5
 
     # Define Scale Factor for Being Too Far from a Low Descending Ball
-    SCALE_URGENT_RECEIVE_PENALTY = 2.5
+    SCALE_URGENT_RECEIVE_PENALTY = 1.5
 
     """====================================================================================================
     ## Calculating Reward by Accumulating Different Components
