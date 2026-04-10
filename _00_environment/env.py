@@ -1315,12 +1315,27 @@ class Env:
         if score is not None and score["match_done"] and score[train_side] > score[other_side]:
             match_won = 1.0
 
+        events = {}
+        if score is not None and isinstance(score.get("events"), dict):
+            events = score["events"]
+
+        touch_events = {}
+        if isinstance(events.get("touch"), dict):
+            touch_events = events["touch"]
+
+        self_touch = bool(touch_events.get(train_side, False))
+        crossed_to_opponent = events.get("crossed_net_to") == other_side
+
         materials = {}
         materials["opponent_position"] = (opponent_raw["x"], opponent_raw["y"])
         materials["self_position"] = (self_raw["x"], self_raw["y"])
         materials["ball_position"] = (ball_raw["x"], ball_raw["y"])
+        materials["expected_landing_x"] = ball_raw["expected_landing_x"]
         materials["self_action_name"] = self_action_name
         materials["opponent_action_name"] = opponent_action_name
+        materials["self_state"] = self_raw["state"]
+        materials["self_touch"] = self_touch
+        materials["crossed_to_opponent"] = crossed_to_opponent
         materials["point_result"] = {"scored": point_scored, "lost": point_lost}
         materials["match_result"] = {"won": match_won}
         materials["rally_total_frames_until_point"] = rally_total_frames_until_point

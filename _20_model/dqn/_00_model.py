@@ -206,9 +206,13 @@ class Dqn:
         # - Calculate Predicted Q-Values
         qvalues = self.policy(states).gather(1, actions).squeeze(1)
 
-        # - Calculate Target Q-Values
-        qvalues_next = self.target_policy(states_next)\
-            .max(dim=1).values.detach()
+        # - Calculate Target Q-Values with Double DQN
+        with torch.no_grad():
+            next_action_indexes = self.policy(
+                states_next).argmax(dim=1, keepdim=True)
+            qvalues_next = self.target_policy(states_next).gather(
+                1, next_action_indexes
+            ).squeeze(1)
         qtargets = rewards + self.gamma * qvalues_next * (1.0 - dones)
 
         # - Optimize Policy Network
