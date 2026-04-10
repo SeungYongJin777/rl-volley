@@ -190,7 +190,7 @@ def calculate_reward(materials, current_state_mat=None, next_state_mat=None):
     SCALE_MATCH_WIN_BONUS = 20.0
 
     # Define Scale Factor for Moving Toward the Predicted Landing Point
-    SCALE_LANDING_ALIGNMENT = 6.0
+    SCALE_LANDING_ALIGNMENT = 3.5
 
     # Define Scale Factor for Being Too Far from a Low Descending Ball
     SCALE_URGENT_RECEIVE_PENALTY = 2.5

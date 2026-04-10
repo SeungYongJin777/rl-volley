@@ -11,10 +11,10 @@ def get_train_params():
         "gamma": 0.995,
 
         # Weighted Target Mixing between Q-Learning and SARSA
-        "lambda_blend": 0.30,
+        "lambda_blend": 0.15,
 
         # Epsilon-Greedy Exploration Parameters
-        "epsilon_start": 0.20,
+        "epsilon_start": 0.30,
         "epsilon_end": 0.01,
         "epsilon_decay": 0.99999,
 
