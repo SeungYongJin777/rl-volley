@@ -1,6 +1,3 @@
-from sympy import python
-
-
 def get_train_params():
     """====================================================================================================
     ## Hyperparameter Setting for training
@@ -8,29 +5,29 @@ def get_train_params():
     # Define the training parameters
     TRAIN_PARAMS = {
         # Learning Rate
-        "learning_rate": 3e-4,
+        "learning_rate": 1e-4,
 
         # Discount Factor
-        "gamma": 0.99,
+        "gamma": 0.995,
 
         # Epsilon-Greedy Exploration Parameters
         "epsilon_start": 1.0,
-        "epsilon_end": 0.05,
-        "epsilon_decay": 0.9995,
+        "epsilon_end": 0.1,
+        "epsilon_decay": 0.9998,
 
         # Replay Buffer Parameters
-        "replay_buffer_size": 50000,
-        "replay_start_size": 2000,
-        "batch_size": 128,
+        "replay_buffer_size": 100000,
+        "replay_start_size": 5000,
+        "batch_size": 64,
 
         # Neural Network Architecture Parameters
-        "hidden_dim": 64,
+        "hidden_dim": 128,
         "hidden_layer_count": 2,
 
-        "update_every": 4,
+        "update_every": 2,
 
         # Target Network Update Interval
-        "target_update_interval": 200,
+        "target_update_interval": 500,
 
         # Initial Values for Training
         "epsilon_init": None,
