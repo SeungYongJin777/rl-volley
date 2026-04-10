@@ -71,9 +71,8 @@ class Dqn:
         self.gamma = float(self.train_conf["gamma"])
 
         # - Device for Training
-        # self.device = torch.device(
-        #     "cuda" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cpu")
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
 
         # - Learning Rate for Training Networks
         self.learning_rate = float(self.train_conf["learning_rate"])
