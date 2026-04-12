@@ -41,3 +41,38 @@ python3 cli.py --mode train --train_algorithm sarsa --train_side 1p --train_poli
 python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy test --train_rewrite True --train_opponent qlearning:100000 --num_episode 1000
 ```
 
+
+
+
+
+
+# dqn 학습 파이프라인
+
+# 1단계: Rule 베이스 (15k)
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite True --train_opponent rule --num_episode 7000
+
+
+# 2단계: Self + Rule 혼합 (연속학습)
+# 2-1) self 4k
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent self --num_episode 3000
+
+# 2-2) rule 2k
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent rule --num_episode 1500
+
+# 2-3) self 4k
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent self --num_episode 3000
+
+# 2-4) rule 2k
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent rule --num_episode 1500
+
+
+# 3단계: 다른 모델 상대 파인튜닝 (누적)
+# 3-1) qlearning 8k (예: 정책명 100000)
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent qlearning:100000 --num_episode 4000
+
+# 3-2) sarsa 6k (예: 정책명 test)
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent sarsa:test --num_episode 4000
+
+# 3-3) self 5k 마무리
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent self --num_episode 3000
+

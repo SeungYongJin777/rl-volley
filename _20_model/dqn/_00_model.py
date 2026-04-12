@@ -71,8 +71,7 @@ class Dqn:
         self.gamma = float(self.train_conf["gamma"])
 
         # - Device for Training
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
 
         # - Learning Rate for Training Networks
         self.learning_rate = float(self.train_conf["learning_rate"])
@@ -97,7 +96,9 @@ class Dqn:
         # - Initial Values for Training
         self.training_steps_init = int(self.train_conf["training_steps_init"])
         self.training_steps = self.training_steps_init
-        self.loss_function = nn.MSELoss()
+        self.loss_function = nn.SmoothL1Loss()
+        self.gradient_clip_norm = float(
+            self.train_conf["gradient_clip_norm"])
 
         self.update_every = int(self.train_conf["update_every"])
         self.env_steps = 0
@@ -219,6 +220,8 @@ class Dqn:
         loss = self.loss_function(qvalues, qtargets)
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            self.policy.parameters(), self.gradient_clip_norm)
         self.optimizer.step()
 
         # - Synchronize Target Network Periodically
