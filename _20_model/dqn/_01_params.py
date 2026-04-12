@@ -21,13 +21,16 @@ def get_train_params():
         "batch_size": 128,
 
         # Neural Network Architecture Parameters
-        "hidden_dim": 64,
+        "hidden_dim": 128,
         "hidden_layer_count": 2,
 
         "update_every": 4,
 
         # Target Network Update Interval
         "target_update_interval": 1000,
+
+        # Gradient Clipping
+        "gradient_clip_norm": 5.0,
 
         # Initial Values for Training
         "epsilon_init": None,
