@@ -8,7 +8,7 @@ def get_train_params():
         "learning_rate": 2e-4,
 
         # Discount Factor
-        "gamma": 0.99,
+        "gamma": 0.98,
 
         # Epsilon-Greedy Exploration Parameters
         "epsilon_start": 1.0,
