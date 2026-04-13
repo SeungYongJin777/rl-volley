@@ -1324,7 +1324,7 @@ class Env:
             touch_events = events["touch"]
 
         self_touch = bool(touch_events.get(train_side, False))
-        crossed_to_opponent = events.get("crossed_net_to") == other_side
+        crossed_to_opponent = bool(events.get("crossed_net_to") == other_side)
 
         materials = {}
         materials["opponent_position"] = (opponent_raw["x"], opponent_raw["y"])
@@ -1339,6 +1339,8 @@ class Env:
         materials["point_result"] = {"scored": point_scored, "lost": point_lost}
         materials["match_result"] = {"won": match_won}
         materials["rally_total_frames_until_point"] = rally_total_frames_until_point
+        materials["ball_side"] = ball_raw["side"]
+        materials["rally_step"] = raw_state["rally_step"]
         return materials
 
     def _update_match_progress(self, previous_collision_flags, previous_ball_x, is_ball_touching_ground):
