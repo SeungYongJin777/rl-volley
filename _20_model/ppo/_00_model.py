@@ -5,6 +5,7 @@ import _20_model
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from collections import deque
 
 # Import Required Internal Libraries
 from _20_model import ppo
@@ -40,6 +41,7 @@ class PPO:
         self.rollout_action_indices = []
         self.rollout_log_probs_old = []
         self.rollout_rewards = []
+        self.reset_state_history()
 
         if policy_name_for_play is not None:
             self.policy_name = str(policy_name_for_play).strip()
@@ -208,12 +210,18 @@ class PPO:
         self.rollout_action_indices = []
         self.rollout_log_probs_old = []
         self.rollout_rewards = []
+        self.reset_state_history()
 
     def get_train_configuration(self):
         return ppo._01_params.get_train_params()
 
     def map_to_designed_state(self, state_mat):
-        state_custom = ppo._03_state_design.calculate_state_key(state_mat)
+        history_context = self.get_state_history_context()
+        state_custom = ppo._03_state_design.calculate_state_key(
+            state_mat,
+            history_context=history_context,
+        )
+        self.update_state_history(state_mat)
         return tuple(state_custom)
 
     def map_to_designed_action(self, action_mat):
@@ -237,3 +245,38 @@ class PPO:
     def save(self):
         ppo._02_network.save_nn(self.actor, self.actor_path)
         ppo._02_network.save_nn(self.critic, self.critic_path)
+
+    def reset_state_history(self):
+        self.state_history = {
+            "opponent_x": deque(maxlen=3),
+            "opponent_action_name": deque(maxlen=3),
+            "opponent_jump": deque(maxlen=3),
+        }
+
+    def get_state_history_context(self):
+        return {
+            "opponent_x_history": list(self.state_history["opponent_x"]),
+            "opponent_action_history": list(self.state_history["opponent_action_name"]),
+            "opponent_jump_history": list(self.state_history["opponent_jump"]),
+        }
+
+    def update_state_history(self, state_mat):
+        raw = state_mat.get("raw", {}) if isinstance(state_mat, dict) else {}
+        opponent_raw = raw.get("opponent", {}) if isinstance(raw, dict) else {}
+        rally_step = int(raw.get("rally_step", 0)) if isinstance(raw, dict) else 0
+
+        if rally_step <= 1:
+            self.reset_state_history()
+
+        opponent_x = float(opponent_raw.get("x", 0.0))
+        opponent_action_name = str(opponent_raw.get("action_name", "normal"))
+        opponent_state = str(opponent_raw.get("state", "normal"))
+
+        is_jump = int(
+            opponent_state == "jump"
+            or opponent_action_name in ("jump", "jump_forward", "jump_backward")
+        )
+
+        self.state_history["opponent_x"].append(opponent_x)
+        self.state_history["opponent_action_name"].append(opponent_action_name)
+        self.state_history["opponent_jump"].append(is_jump)
