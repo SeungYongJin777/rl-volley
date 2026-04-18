@@ -7,6 +7,18 @@ import importlib
 import _10_config
 
 
+def parse_bool_arg(value):
+    if isinstance(value, bool):
+        return value
+
+    normalized_value = str(value).strip().lower()
+    if normalized_value in ("true", "1", "yes", "y", "on"):
+        return True
+    if normalized_value in ("false", "0", "no", "n", "off"):
+        return False
+    raise argparse.ArgumentTypeError(f"invalid boolean value: {value}")
+
+
 def build_parser(conf):
     """====================================================================================================
     ## Design of Parser for CLI
@@ -37,7 +49,10 @@ def build_parser(conf):
     parser.add_argument('--train_opponent', type=str, required=False)
 
     # - Rewrite Existing Policy
-    parser.add_argument('--train_rewrite', type=bool, required=False)
+    parser.add_argument('--train_rewrite', type=parse_bool_arg, required=False)
+
+    # - Initialize Training from Existing Policy
+    parser.add_argument('--train_init_policy', type=str, required=False)
 
     # - Target Score Selection
     parser.add_argument('--target_score', type=int, required=False)
@@ -46,7 +61,7 @@ def build_parser(conf):
     parser.add_argument('--num_episode', type=int, required=False)
 
     # - Random Serve
-    parser.add_argument('--random_serve', type=bool, required=False)
+    parser.add_argument('--random_serve', type=parse_bool_arg, required=False)
 
     # - Random Seed for Reproducibility
     parser.add_argument('--seed', type=int, required=False)
@@ -105,6 +120,10 @@ def parse_args(conf_default, args):
     # - Parse Train Rewrite
     if args.train_rewrite is not None:
         conf_parsed.train_rewrite = args.train_rewrite
+
+    # - Parse Train Init Policy
+    if args.train_init_policy is not None:
+        conf_parsed.train_init_policy = args.train_init_policy
 
     # - Train Episode
     if args.num_episode is not None:

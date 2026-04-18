@@ -33,6 +33,7 @@ class Config:
         self.train_rewrite = False
         self.train_opponent = 'rule'
         self.train_policy = None
+        self.train_init_policy = None
         self.num_episode = 10000
 
         # Black & White Mode

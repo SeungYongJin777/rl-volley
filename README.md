@@ -57,7 +57,7 @@ python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy
 python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent self --num_episode 3000
 
 # 2-2) rule 2k
-python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent rule --num_episode 1500
+python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent rule --num_episode 2000
 
 # 2-3) self 4k
 python3 cli.py --mode train --train_algorithm dqn --train_side 2p --train_policy dqn_compact_v1 --train_rewrite False --train_opponent self --num_episode 3000

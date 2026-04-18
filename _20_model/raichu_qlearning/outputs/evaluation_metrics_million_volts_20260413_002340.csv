@@ -1,0 +1,7 @@
+episode,evaluation_episodes,opponent,win_rate,avg_self_score,avg_opponent_score,avg_score_diff,checkpoint_policy
+5000,20,rule,0.8,4.55,2.0,2.55,million_volts_ep5000
+10000,20,rule,0.5,3.95,3.6,0.3500000000000001,million_volts_ep10000
+15000,20,rule,0.95,4.95,1.2,3.75,million_volts_ep15000
+20000,20,rule,1.0,5.0,1.85,3.15,million_volts_ep20000
+25000,20,rule,0.55,4.2,3.3,0.9000000000000004,million_volts_ep25000
+30000,20,rule,0.0,1.4,5.0,-3.6,million_volts_ep30000

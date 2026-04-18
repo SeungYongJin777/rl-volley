@@ -31,7 +31,7 @@ class ReplayDataset(Dataset):
             (
                 torch.as_tensor(state, dtype=torch.float32),
                 torch.tensor([action_idx], dtype=torch.long),
-                torch.tensor(float(reward), dtype=torch.float32),
+                torch.tensor(flffoat(reward), dtype=torch.float32),
                 torch.as_tensor(state_next, dtype=torch.float32),
                 torch.tensor(float(done), dtype=torch.float32),
             )

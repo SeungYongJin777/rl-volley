@@ -22,10 +22,15 @@ def epsilon_greedy_action_selection(
         dtype=float,
     )
     valid_indexes = np.flatnonzero(state_action_mask > 0.5)
+    valid_indexes = valid_indexes[valid_indexes < int(q_vector.shape[0])]
 
     if valid_indexes.size == 0:
+        fallback_index = min(
+            int(qarsa._04_action_space_design.PSEUDO_IDLE_INDEX),
+            int(q_vector.shape[0]) - 1,
+        )
         valid_indexes = np.array(
-            [qarsa._04_action_space_design.PSEUDO_IDLE_INDEX],
+            [fallback_index],
             dtype=int,
         )
 

@@ -211,7 +211,7 @@ def import_model_package(algorithm_name):
     return model_package
 
 
-def create_model(conf, algorithm_name, policy_name_for_play=None):
+def create_model(conf, algorithm_name, policy_name_for_play=None, **model_kwargs):
     model_name = resolve_model_name(algorithm_name)
     import_model_package(model_name)
 
@@ -220,6 +220,7 @@ def create_model(conf, algorithm_name, policy_name_for_play=None):
     model = model_class(
         conf,
         policy_name_for_play=policy_name_for_play,
+        **model_kwargs,
     )
     return model
 

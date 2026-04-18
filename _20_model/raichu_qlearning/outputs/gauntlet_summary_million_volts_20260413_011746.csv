@@ -1,0 +1,7 @@
+episode,stage,checkpoint_policy,target_score,matchup_count,opponent_count,overall_episodes,overall_win_rate,overall_avg_self_score,overall_avg_opponent_score,overall_avg_score_diff,opponents
+5000,quick,million_volts_ep5000,3,30,3,60,0.5,2.05,2.05,0.0,"raichu_qlearning:million_volts,raichu_qlearning:million_volts_latest,rule"
+10000,quick,million_volts_ep10000,3,30,3,60,0.5,2.05,2.05,0.0,"raichu_qlearning:million_volts,raichu_qlearning:million_volts_latest,rule"
+15000,quick,million_volts_ep15000,3,30,3,60,0.5,2.05,2.05,0.0,"raichu_qlearning:million_volts,raichu_qlearning:million_volts_latest,rule"
+20000,quick,million_volts_ep20000,3,30,3,60,0.5,2.05,2.05,0.0,"raichu_qlearning:million_volts,raichu_qlearning:million_volts_latest,rule"
+25000,quick,million_volts_ep25000,3,30,3,60,0.5,2.05,2.05,0.0,"raichu_qlearning:million_volts,raichu_qlearning:million_volts_latest,rule"
+30000,quick,million_volts_ep30000,3,30,3,60,0.5,2.05,2.05,0.0,"raichu_qlearning:million_volts,raichu_qlearning:million_volts_latest,rule"

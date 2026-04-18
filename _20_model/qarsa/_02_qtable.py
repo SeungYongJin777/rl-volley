@@ -32,8 +32,22 @@ def get_qvector(qtable, state_key):
     dim_action = len(qarsa._04_action_space_design.action_mask())
     if state_key not in qtable:
         qtable[state_key] = create_qvector(dim_action)
-    elif not isinstance(qtable[state_key], np.ndarray):
-        qtable[state_key] = np.asarray(qtable[state_key], dtype=np.float32)
+    else:
+        qvector = qtable[state_key]
+        if not isinstance(qvector, np.ndarray):
+            qvector = np.asarray(qvector, dtype=np.float32)
+
+        # Backward compatibility:
+        # Old checkpoints may have 13-dim vectors while current policy uses 14
+        # (pseudo idle slot at index 13). Pad/truncate to current action size.
+        if int(qvector.shape[0]) < dim_action:
+            padded_qvector = create_qvector(dim_action)
+            padded_qvector[: int(qvector.shape[0])] = qvector
+            qvector = padded_qvector
+        elif int(qvector.shape[0]) > dim_action:
+            qvector = np.asarray(qvector[:dim_action], dtype=np.float32)
+
+        qtable[state_key] = qvector
 
     # - If the State Key is in Q-Table, Return the Corresponding Q-Vector
     return qtable[state_key]
@@ -69,5 +83,18 @@ def load_qtable(path):
     # - Pick the Q-Table from the Loaded Payload
     loaded_qtable = payload.get("table", {})
 
+    # Normalize loaded table entries to the current action dimension.
+    dim_action = len(qarsa._04_action_space_design.action_mask())
+    normalized_qtable = {}
+    for state_key, qvalues in loaded_qtable.items():
+        qvector = np.asarray(qvalues, dtype=np.float32).reshape(-1)
+        if int(qvector.shape[0]) < dim_action:
+            padded_qvector = create_qvector(dim_action)
+            padded_qvector[: int(qvector.shape[0])] = qvector
+            qvector = padded_qvector
+        elif int(qvector.shape[0]) > dim_action:
+            qvector = np.asarray(qvector[:dim_action], dtype=np.float32)
+        normalized_qtable[state_key] = qvector
+
     # - Return the Loaded Q-Table
-    return loaded_qtable
+    return normalized_qtable

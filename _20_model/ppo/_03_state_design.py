@@ -1,6 +1,17 @@
-# Import require internal Packages
 from _00_environment.constants import BALL_TOUCHING_GROUND_Y_COORD
 from _00_environment.constants import GROUND_WIDTH
+
+
+VELOCITY_MIN = -30.0
+VELOCITY_MAX = 30.0
+RELATIVE_X_MIN = -(GROUND_WIDTH - 1)
+RELATIVE_X_MAX = GROUND_WIDTH - 1
+RELATIVE_Y_MIN = -BALL_TOUCHING_GROUND_Y_COORD
+RELATIVE_Y_MAX = BALL_TOUCHING_GROUND_Y_COORD
+
+
+def clamp(value, minimum_value, maximum_value):
+    return max(minimum_value, min(maximum_value, float(value)))
 
 
 def normalize_minmax(value, minimum_value, maximum_value):
@@ -10,8 +21,9 @@ def normalize_minmax(value, minimum_value, maximum_value):
     if maximum_value <= minimum_value:
         return 0.0
 
-    normalized_value = (float(value) - float(minimum_value)) / \
-        (float(maximum_value) - float(minimum_value))
+    normalized_value = (float(value) - float(minimum_value)) / (
+        float(maximum_value) - float(minimum_value)
+    )
 
     if normalized_value < 0.0:
         return 0.0
@@ -42,6 +54,15 @@ def map_action_to_group(action_name):
     return normalize_minmax(group_code, 0, len(action_group_code) - 1)
 
 
+def map_self_state_to_group(state_name):
+    normalized_state = str(state_name or "normal").strip().lower()
+    if normalized_state == "jump":
+        return 0.5
+    if normalized_state == "dive":
+        return 1.0
+    return 0.0
+
+
 def get_recent_move_direction(opponent_x_history):
     if len(opponent_x_history) < 2:
         return 0.0
@@ -63,15 +84,40 @@ def get_jump_frequency(opponent_jump_history):
     return jump_count / float(len(opponent_jump_history))
 
 
+def landing_urgency_phase(ball_to_self_flag, ball_vy, ball_rel_y_to_self):
+    if bool(ball_to_self_flag) is not True:
+        return 0
+    if float(ball_vy) <= 0.0:
+        return 0
+    if float(ball_rel_y_to_self) > 96.0:
+        return 1
+    return 2
+
+
+def hittable_phase(ball_to_self_flag, ball_rel_x_to_self, ball_rel_y_to_self, ball_vy):
+    abs_rel_x = abs(float(ball_rel_x_to_self))
+    rel_y = float(ball_rel_y_to_self)
+    descending_or_neutral = float(ball_vy) >= -1.0
+
+    if bool(ball_to_self_flag) is not True:
+        return 0
+    if descending_or_neutral and abs_rel_x <= 24.0 and 20.0 <= rel_y <= 120.0:
+        return 2
+    if abs_rel_x <= 64.0 and 0.0 <= rel_y <= 164.0:
+        return 1
+    return 0
+
+
+def normalize_phase_value(phase_value, phase_max_value=2.0):
+    return normalize_minmax(float(phase_value), 0.0, float(phase_max_value))
+
+
 def calculate_state_key(materials, history_context=None):
     """====================================================================================================
-    ## Compact State Design with Opponent Recent Pattern
+    ## Expanded PPO State with Defensive Awareness
     ===================================================================================================="""
     if history_context is None:
         history_context = {}
-
-    velocity_min = -30
-    velocity_max = 30
 
     raw = materials["raw"]
     self_raw = raw["self"]
@@ -79,16 +125,23 @@ def calculate_state_key(materials, history_context=None):
     ball_raw = raw["ball"]
     score_raw = raw.get("score", {})
 
-    self_x = normalize_minmax(float(self_raw["x"]), 0, GROUND_WIDTH - 1)
-    self_y = normalize_minmax(float(self_raw["y"]), 0, BALL_TOUCHING_GROUND_Y_COORD)
-    opponent_x = normalize_minmax(float(opponent_raw["x"]), 0, GROUND_WIDTH - 1)
-    ball_x = normalize_minmax(float(ball_raw["x"]), 0, GROUND_WIDTH - 1)
-    ball_vx_norm = normalize_minmax(
-        float(ball_raw["x_velocity"]),
-        velocity_min,
-        velocity_max,
-    )
+    self_x_raw = float(self_raw["x"])
+    self_y_raw = float(self_raw["y"])
+    opponent_x_raw = float(opponent_raw["x"])
+    opponent_y_raw = float(opponent_raw["y"])
+    ball_x_raw = float(ball_raw["x"])
+    ball_y_raw = float(ball_raw["y"])
+    ball_vx_raw = clamp(ball_raw["x_velocity"], VELOCITY_MIN, VELOCITY_MAX)
+    ball_vy_raw = clamp(ball_raw["y_velocity"], VELOCITY_MIN, VELOCITY_MAX)
+    landing_x_raw = float(ball_raw["expected_landing_x"])
 
+    ball_rel_x_raw = clamp(ball_x_raw - self_x_raw, RELATIVE_X_MIN, RELATIVE_X_MAX)
+    ball_rel_y_raw = clamp(self_y_raw - ball_y_raw, RELATIVE_Y_MIN, RELATIVE_Y_MAX)
+    landing_rel_x_raw = clamp(
+        landing_x_raw - self_x_raw,
+        RELATIVE_X_MIN,
+        RELATIVE_X_MAX,
+    )
     ball_to_self_flag = 1.0 if str(ball_raw.get("side", "self")) == "self" else 0.0
 
     self_score = float(score_raw.get("self", 0.0))
@@ -116,24 +169,46 @@ def calculate_state_key(materials, history_context=None):
         1.0,
     )
 
-    DESIGNED_STATE_VECTOR = [
-        self_x,
-        self_y,
-        opponent_x,
-        ball_x,
-        ball_vx_norm,
+    landing_phase = landing_urgency_phase(
+        ball_to_self_flag=ball_to_self_flag,
+        ball_vy=ball_vy_raw,
+        ball_rel_y_to_self=ball_rel_y_raw,
+    )
+    hittable_phase_value = hittable_phase(
+        ball_to_self_flag=ball_to_self_flag,
+        ball_rel_x_to_self=ball_rel_x_raw,
+        ball_rel_y_to_self=ball_rel_y_raw,
+        ball_vy=ball_vy_raw,
+    )
+
+    designed_state_vector = [
+        normalize_minmax(self_x_raw, 0.0, GROUND_WIDTH - 1),
+        normalize_minmax(self_y_raw, 0.0, BALL_TOUCHING_GROUND_Y_COORD),
+        map_self_state_to_group(self_raw.get("state", "normal")),
+        normalize_minmax(opponent_x_raw, 0.0, GROUND_WIDTH - 1),
+        normalize_minmax(opponent_y_raw, 0.0, BALL_TOUCHING_GROUND_Y_COORD),
+        normalize_minmax(ball_x_raw, 0.0, GROUND_WIDTH - 1),
+        normalize_minmax(ball_y_raw, 0.0, BALL_TOUCHING_GROUND_Y_COORD),
+        normalize_minmax(ball_vx_raw, VELOCITY_MIN, VELOCITY_MAX),
+        normalize_minmax(ball_vy_raw, VELOCITY_MIN, VELOCITY_MAX),
+        normalize_minmax(ball_rel_x_raw, RELATIVE_X_MIN, RELATIVE_X_MAX),
+        normalize_minmax(ball_rel_y_raw, RELATIVE_Y_MIN, RELATIVE_Y_MAX),
+        normalize_minmax(landing_x_raw, 0.0, GROUND_WIDTH - 1),
+        normalize_minmax(landing_rel_x_raw, RELATIVE_X_MIN, RELATIVE_X_MAX),
         ball_to_self_flag,
         score_diff_norm,
         serve_phase_flag,
         opponent_prev_action_group,
         opponent_move_dir_3step,
         opponent_jump_freq_3step,
+        normalize_phase_value(landing_phase),
+        normalize_phase_value(hittable_phase_value),
     ]
-    return DESIGNED_STATE_VECTOR
+    return designed_state_vector
 
 
 def get_state_dim():
     """====================================================================================================
     ## Get the Dimension of Designed State Vector
     ===================================================================================================="""
-    return 11
+    return 21
